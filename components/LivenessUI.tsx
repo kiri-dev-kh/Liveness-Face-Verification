@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Camera } from 'lucide-react';
 import { REQUIRED_BLINK_COUNT } from '../constants';
 
 interface LivenessUIProps {
@@ -15,69 +14,72 @@ interface LivenessUIProps {
 }
 
 const LivenessUI: React.FC<LivenessUIProps> = ({
-  stage,
-  status,
   isFaceInside,
   blinkCount,
+  onManualCapture,
+  canManualCapture,
   onBack
 }) => {
   const blinkProgress = Math.min((blinkCount / REQUIRED_BLINK_COUNT) * 100, 100);
-  const recognitionScore = Math.floor(Math.max(blinkProgress, isFaceInside ? 20 : 0));
+  const recognitionScore = Math.floor(Math.max(blinkProgress, isFaceInside ? 18 : 0));
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center bg-white z-20">
-      
-      {/* Header */}
-      <div className="w-full flex items-center p-6 pt-12 pointer-events-auto">
+    <div className="absolute inset-0 pointer-events-none flex flex-col items-center z-30">
+      {/* Top Header */}
+      <div className="w-full flex items-center justify-start p-6 pt-12 pointer-events-auto">
         <button 
           onClick={onBack}
-          className="p-2 text-slate-800 hover:bg-slate-50 rounded-full"
+          className="p-3 bg-white border border-slate-100 rounded-full text-slate-800 shadow-sm transition-all active:scale-90"
         >
           <ChevronLeft size={20} />
         </button>
-        <span className="flex-1 text-center font-bold text-sm mr-8">Face ID</span>
       </div>
 
-      {/* Instruction */}
-      <div className="mt-6 text-center px-8">
-        <p className="text-slate-600 text-[15px] font-medium">
-          Look directly into the camera
+      {/* Instruction Text */}
+      <div className="mt-4 text-center px-10 animate__animated animate__fadeIn">
+        <p className="text-slate-600 text-[15px] font-bold tracking-tight opacity-70">
+          Please look the camera and hold still
         </p>
       </div>
 
-      {/* Camera Frame Container */}
-      <div className="flex-1 w-full flex flex-col items-center justify-center -mt-10">
-        <div className="relative w-72 h-72">
-          {/* Transparent hole area is handled by the parent's layout and masking in App.tsx */}
-          {/* We add corner brackets here */}
-          <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-white rounded-tl-3xl z-30" />
-          <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-white rounded-tr-3xl z-30" />
-          <div className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-white rounded-bl-3xl z-30" />
-          <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-white rounded-br-3xl z-30" />
-          
-          {/* Subtle Frame Edge */}
-          <div className={`absolute inset-0 rounded-[40px] border border-slate-100 pointer-events-none z-20`} />
-        </div>
+      {/* Scanning Viewport Area - NO BORDER HERE to prevent duplication */}
+      <div className="flex-1 w-full flex items-center justify-center relative">
+        <div className="relative w-[280px] h-[340px] overflow-hidden rounded-[48px]">
+          {/* Brackets (Internal) */}
+          <div className="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-white rounded-tl-[32px] opacity-60 z-30" />
+          <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-white rounded-tr-[32px] opacity-60 z-30" />
+          <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-white rounded-bl-[32px] opacity-60 z-30" />
+          <div className="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-white rounded-br-[32px] opacity-60 z-30" />
 
-        {/* Dynamic Status Text */}
-        <div className="mt-20 text-center px-10">
-          <p className="text-slate-400 text-sm font-medium animate-pulse">
-            {isFaceInside ? "Hold still, we are processing" : "Position your face in the frame"}
-          </p>
+          {/* Green Scan Line */}
+          {isFaceInside && <div className="scan-line" />}
         </div>
       </div>
 
-      {/* Progress Section */}
-      <div className="w-full max-w-xs px-6 pb-20 space-y-4">
-        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-          <div 
-            className="h-full progress-gradient transition-all duration-700 ease-out"
-            style={{ width: `${recognitionScore}%` }}
-          />
+      {/* Bottom Progress Area */}
+      <div className="w-full max-w-[320px] px-6 pb-20 pointer-events-auto flex flex-col items-center">
+        <div className="w-full flex flex-col items-center gap-4 mb-6">
+          <span className="text-slate-700 font-bold text-[13px] tracking-tight opacity-90">
+            {isFaceInside ? `${recognitionScore}% Recognition` : 'Scanning...'}
+          </span>
+          <div className="h-2 w-full bg-white rounded-full overflow-hidden shadow-sm border border-slate-100">
+            <div 
+              className="h-full primary-blue rounded-full transition-all duration-1000 ease-out"
+              style={{ width: `${recognitionScore}%` }}
+            />
+          </div>
         </div>
-        <div className="text-right">
-          <span className="text-pink-500 font-bold text-sm">{recognitionScore}%</span>
-        </div>
+
+        {/* Manual Fallback Button */}
+        {canManualCapture && (
+          <button
+            onClick={onManualCapture}
+            className="w-full primary-blue hover:bg-blue-700 text-white font-bold py-4.5 rounded-2xl shadow-xl shadow-blue-100 flex items-center justify-center gap-3 transition-all animate__animated animate__fadeInUp"
+          >
+            <Camera size={20} />
+            Capture Photo Manually
+          </button>
+        )}
       </div>
     </div>
   );

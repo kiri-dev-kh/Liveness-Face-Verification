@@ -1,6 +1,4 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { ShieldCheck } from 'lucide-react';
 import LivenessUI from './components/LivenessUI';
 import CapturePreview from './components/CapturePreview';
 import IntroView from './components/IntroView';
@@ -24,7 +22,7 @@ const App: React.FC = () => {
   const cameraRef = useRef<any>(null);
 
   const [stage, setStage] = useState<ValidationStage>(ValidationStage.INTRO);
-  const [status, setStatus] = useState('Position face');
+  const [status, setStatus] = useState('Scanning...');
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isFaceInside, setIsFaceInside] = useState(false);
   const [blinkCount, setBlinkCount] = useState(0);
@@ -43,7 +41,6 @@ const App: React.FC = () => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
-      // High-quality capture matching original stream dimensions
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
@@ -83,47 +80,42 @@ const App: React.FC = () => {
       const landmarks = results.multiFaceLandmarks[0];
       setCurrentLandmarks(landmarks);
 
-      // Check if face is centered within the frame
-      // Frame is centered at 0.5, 0.45 roughly in the view
       const nose = landmarks[1];
+      // Updated centering logic for the 280x340 viewport area
       const isCentred = nose.x > 0.4 && nose.x < 0.6 && nose.y > 0.35 && nose.y < 0.65;
       setIsFaceInside(isCentred);
 
       if (!isCentred) {
-        setStatus('Center face');
+        setStatus('Scanning...');
         return;
       }
 
-      // Blink detection logic
       const leftEar = calculateEAR(landmarks, LEFT_EYE);
       const rightEar = calculateEAR(landmarks, RIGHT_EYE);
       const avgEar = (leftEar + rightEar) / 2;
 
       if (avgEar < EAR_THRESHOLD) {
         isBlinkingRef.current = true;
-        setStatus('Hold...');
       } else {
         if (isBlinkingRef.current) {
           blinkCountRef.current += 1;
           setBlinkCount(blinkCountRef.current);
           isBlinkingRef.current = false;
         }
-        setStatus('Blink Now');
       }
 
-      // Motion analysis (liveness confirmation)
       headPosHistoryRef.current.push(nose.x + nose.y);
       if (headPosHistoryRef.current.length > 20) headPosHistoryRef.current.shift();
       const variance = calculateVariance(headPosHistoryRef.current);
 
       if (blinkCountRef.current >= REQUIRED_BLINK_COUNT && variance > MIN_MOTION_THRESHOLD) {
-        setStatus('Processing...');
-        setTimeout(() => doCapture('auto'), 800);
+        setStatus('Recognition Success');
+        setTimeout(() => doCapture('auto'), 1000);
       }
     } else {
       setIsFaceInside(false);
       setCurrentLandmarks(null);
-      setStatus('No face detected');
+      setStatus('Scanning...');
     }
   }, [doCapture]);
 
@@ -149,8 +141,8 @@ const App: React.FC = () => {
     faceMesh.setOptions({
       maxNumFaces: 1,
       refineLandmarks: true,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7,
+      minDetectionConfidence: 0.75,
+      minTrackingConfidence: 0.75,
       selfieMode: true,
     });
 
@@ -178,7 +170,7 @@ const App: React.FC = () => {
     setElapsedTime(0);
     setBlinkCount(0);
     setStage(ValidationStage.INTRO);
-    setStatus('Position face');
+    setStatus('Scanning...');
     blinkCountRef.current = 0;
     headPosHistoryRef.current = [];
     setCurrentLandmarks(null);
@@ -207,7 +199,7 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* White Mask Overlay - Creates the cutout effect */}
+      {/* Modern Light Mask Overlay with 280x340 Rounded Cutout - ALIGNED TO CENTER */}
       {stage !== ValidationStage.INTRO && stage !== ValidationStage.VERIFIED && (
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
           <defs>
@@ -215,16 +207,16 @@ const App: React.FC = () => {
               <rect width="100%" height="100%" fill="white" />
               <rect 
                 x="50%" 
-                y="45%" 
-                width="288" 
-                height="288" 
-                rx="60" 
+                y="50%" 
+                width="280" 
+                height="340" 
+                rx="48" 
                 fill="black" 
-                transform="translate(-144, -144)"
+                transform="translate(-140, -170)"
               />
             </mask>
           </defs>
-          <rect width="100%" height="100%" fill="white" mask="url(#kyc-mask)" />
+          <rect width="100%" height="100%" fill="#f8faff" fillOpacity="1" mask="url(#kyc-mask)" />
         </svg>
       )}
 
@@ -253,11 +245,11 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Elegant Loading Screen */}
+      {/* Loading Screen */}
       {stage === ValidationStage.LOADING && (
         <div className="absolute inset-0 z-[60] bg-white flex flex-col items-center justify-center animate__animated animate__fadeIn">
-          <div className="w-16 h-16 border-4 border-slate-100 border-t-blue-500 rounded-full animate-spin mb-6" />
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">Secure Loading...</p>
+          <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-6" />
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.3em]">Processing...</p>
         </div>
       )}
     </main>
