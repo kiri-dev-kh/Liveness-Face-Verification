@@ -1,0 +1,7 @@
+{
+  "name": "Liveness Face Verification",
+  "description": "High-performance face detection and liveness validation system using MediaPipe. Features blink detection, motion analysis, and a 50-second manual fallback mechanism.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
